@@ -1,0 +1,85 @@
+# Docker Compose Override Example
+# Copy this file to docker-compose.override.yml and customize as needed
+# This file is automatically loaded by docker-compose and overrides settings in docker-compose.yml
+
+version: '3.8'
+
+services:
+  web:
+    # Override environment variables
+    environment:
+      - DEBUG=1
+      - LOG_LEVEL=DEBUG
+    
+    # Mount additional volumes for development
+    volumes:
+      - ./app:/usr/src/app
+      - ./logs:/usr/src/app/logs
+    
+    # Override command for development (e.g., with auto-reload)
+    # command: python manage.py runserver 0.0.0.0:8000
+    
+    # Add development-specific ports
+    ports:
+      - "8000:8000"  # Direct access to Django dev server
+    
+    # Override resource limits for development
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+  
+  db:
+    # Override database settings for development
+    environment:
+      - POSTGRES_DB=hello_django_dev
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+    
+    # Expose database port for external access (development only)
+    ports:
+      - "5432:5432"
+    
+    # Mount custom PostgreSQL configuration
+    # volumes:
+    #   - ./postgresql.conf:/etc/postgresql/postgresql.conf
+  
+  # Add development services
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+  
+  # Add mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+  
+  # Add pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+
+volumes:
+  redis_data:
+  pgadmin_data:
+
+# Override networks if needed
+# networks:
+#   default:
+#     driver: bridge
