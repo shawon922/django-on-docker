@@ -8,6 +8,8 @@ django = "*"
 psycopg2-binary = "*"
 gunicorn = "*"
 django-sendfile2 = "*"
+django-prometheus = "*"
+python-json-logger = "*"
 
 [dev-packages]
 flake8 = "*"

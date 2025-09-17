@@ -21,6 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('myapp/', include('myapp.urls')),
     path('upload/', include('upload.urls')),
+    path('', include('django_prometheus.urls')),
 ]
 
 # Media files are now served securely through django-sendfile

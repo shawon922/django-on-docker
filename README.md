@@ -278,6 +278,140 @@ docker-compose logs -f web
 4. Add tests if applicable
 5. Submit a pull request
 
+## Monitoring Stack
+
+This project includes a comprehensive monitoring stack with Prometheus, Grafana, and Loki for metrics collection, visualization, and log aggregation.
+
+### Monitoring Services
+
+- **Prometheus** (port 9090): Metrics collection and alerting
+- **Grafana** (port 3000): Metrics visualization and dashboards
+- **Loki** (port 3100): Log aggregation system
+- **Promtail**: Log collection agent
+- **Node Exporter** (port 9100): System metrics
+- **cAdvisor** (port 8080): Container metrics
+
+### Quick Start
+
+1. **Start the monitoring stack:**
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+2. **Access the services:**
+   - Grafana: http://localhost:3000 (admin/admin123)
+   - Prometheus: http://localhost:9090
+   - Django App: http://localhost:1337
+
+### Grafana Setup
+
+**Default Credentials:**
+- Username: `admin`
+- Password: `admin123`
+
+**Pre-configured Dashboards:**
+- Django Application Monitoring: Includes request rate, response time, error rate, and system metrics
+- Datasources are automatically provisioned for Prometheus and Loki
+
+### Metrics Available
+
+**Django Metrics (via django-prometheus):**
+- HTTP request rate and latency
+- Response status codes
+- Database query metrics
+- Cache hit/miss rates
+- Custom application metrics
+
+**System Metrics (via Node Exporter):**
+- CPU, memory, disk usage
+- Network statistics
+- File system metrics
+
+**Container Metrics (via cAdvisor):**
+- Container resource usage
+- Container performance metrics
+
+### Log Collection
+
+**Django Logs:**
+- Application logs in JSON format
+- Request/response logs
+- Error tracking
+- Custom application logs
+
+**System Logs:**
+- Container logs
+- System logs
+- Nginx access/error logs
+
+### Alerting
+
+Pre-configured alerts for:
+- High Django response time (>2s)
+- High error rate (>5%)
+- Django application downtime
+- High CPU usage (>80%)
+- High memory usage (>85%)
+- Low disk space (<10%)
+- PostgreSQL connection issues
+
+### Configuration Files
+
+```
+monitoring/
+├── prometheus/
+│   ├── prometheus.yml      # Prometheus configuration
+│   └── alert_rules.yml     # Alert rules
+├── grafana/
+│   ├── grafana.ini         # Grafana configuration
+│   └── provisioning/       # Auto-provisioning
+│       ├── datasources/
+│       └── dashboards/
+├── loki/
+│   └── loki.yml           # Loki configuration
+└── promtail/
+    └── promtail.yml       # Log collection configuration
+```
+
+### Customization
+
+**Adding Custom Metrics:**
+1. Use django-prometheus decorators in your views
+2. Create custom Prometheus metrics
+3. Update Grafana dashboards
+
+**Custom Dashboards:**
+1. Create dashboards in Grafana UI
+2. Export JSON and save to `monitoring/grafana/provisioning/dashboards/`
+3. Restart Grafana service
+
+**Log Parsing:**
+1. Update `monitoring/promtail/promtail.yml`
+2. Add custom pipeline stages for log parsing
+3. Restart Promtail service
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **Metrics not appearing:**
+   - Check Django `/metrics` endpoint: http://localhost:1337/metrics
+   - Verify Prometheus targets: http://localhost:9090/targets
+
+2. **Logs not showing in Grafana:**
+   - Check Loki status: http://localhost:3100/ready
+   - Verify Promtail configuration and logs
+
+3. **High resource usage:**
+   - Adjust retention policies in prometheus.yml
+   - Configure log rotation for Django logs
+   - Limit metrics collection frequency
+
+**Performance Tuning:**
+- Adjust scrape intervals in prometheus.yml
+- Configure log retention in loki.yml
+- Optimize Grafana dashboard queries
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
