@@ -1,13 +1,16 @@
 # Django on Docker
 
-A Django web application with file upload functionality, containerized with Docker and served with Nginx.
+A comprehensive Django web application with bank statement processing, authentication, and file upload functionality, containerized with Docker and served with Nginx.
 
 ## Features
 
 - 🐳 **Dockerized Django Application** - Complete containerization with Docker Compose
+- 🏦 **Bank Statement Processing** - Extract and manage bank statement data using OCR
+- 🔐 **Authentication System** - Comprehensive user authentication and profile management
 - 📁 **File Upload System** - Secure file upload with django-sendfile2
 - 🗄️ **PostgreSQL Database** - Production-ready database setup
 - 🌐 **Nginx Reverse Proxy** - High-performance web server
+- 📊 **Monitoring Stack** - Prometheus, Grafana, and Loki for metrics and logging
 - 🔒 **Secure File Serving** - Files served through Django views with access control
 - 📱 **Responsive UI** - Bootstrap-based responsive design
 - 🛡️ **Production Ready** - Separate configurations for development and production
@@ -18,14 +21,21 @@ A Django web application with file upload functionality, containerized with Dock
 django-on-docker/
 ├── app/                          # Django application
 │   ├── hello_django/            # Main Django project
-│   ├── myapp/                   # Sample Django app
+│   ├── authentication/          # User authentication app
+│   ├── bank_statement/          # Bank statement processing app
 │   ├── upload/                  # File upload app
 │   ├── Dockerfile               # Development Dockerfile
 │   ├── Dockerfile.prod          # Production Dockerfile
 │   └── manage.py
 ├── nginx/                       # Nginx configuration
+├── monitoring/                  # Monitoring stack configuration
+│   ├── grafana/                 # Grafana dashboards and config
+│   ├── loki/                    # Loki log aggregation
+│   ├── prometheus/              # Prometheus metrics and alerts
+│   └── promtail/                # Log collection agent
 ├── docker-compose.yml           # Development compose file
 ├── docker-compose.prod.yml      # Production compose file
+├── docker-compose.debug.yml     # Debug configuration
 └── README.md
 ```
 
@@ -57,6 +67,8 @@ django-on-docker/
 
 4. **Access the application**
    - Django app: http://localhost:1337
+   - Bank Statement interface: http://localhost:1337/bank-statements/
+   - Authentication: http://localhost:1337/auth/
    - Upload interface: http://localhost:1337/upload/
    - Admin panel: http://localhost:1337/admin/
 

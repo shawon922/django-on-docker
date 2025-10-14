@@ -1,8 +1,10 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 
 class FileUpload(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='uploaded_files')
     title = models.CharField(max_length=200, help_text="Enter a title for the file")
     file = models.FileField(upload_to='uploads/%Y/%m/%d/')
     description = models.TextField(blank=True, help_text="Optional description")

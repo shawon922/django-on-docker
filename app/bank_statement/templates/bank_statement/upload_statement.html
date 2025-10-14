@@ -1,0 +1,514 @@
+{% extends 'bank_statement/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Upload Statement - Bank Statement Extractor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .upload-area {
+        border: 3px dashed #dee2e6;
+        border-radius: 12px;
+        padding: 4rem 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .upload-area:hover {
+        border-color: var(--secondary-color);
+        background-color: rgba(52, 152, 219, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .upload-area.dragover {
+        border-color: var(--success-color);
+        background-color: rgba(39, 174, 96, 0.1);
+        transform: scale(1.02);
+    }
+    
+    .upload-area.uploading {
+        border-color: var(--warning-color);
+        background-color: rgba(243, 156, 18, 0.1);
+    }
+    
+    .upload-icon {
+        font-size: 4rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover .upload-icon {
+        transform: scale(1.1);
+        color: var(--primary-color);
+    }
+    
+    .file-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .file-preview {
+        display: none;
+        margin-top: 2rem;
+    }
+    
+    .file-info {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .progress-container {
+        display: none;
+        margin-top: 2rem;
+    }
+    
+    .supported-formats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .format-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .format-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .format-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    .security-notice {
+        background: linear-gradient(135deg, var(--success-color), #229954);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .processing-steps {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .step:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+    
+    .step-number {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--secondary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .step-content h6 {
+        margin-bottom: 0.25rem;
+        color: var(--dark-text);
+    }
+    
+    .step-content p {
+        margin-bottom: 0;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-cloud-upload me-2"></i>
+                    Upload Bank Statement
+                </h1>
+                <a href="{% url 'bank_statement:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Supported Formats -->
+    <div class="row">
+        <div class="col-12">
+            <div class="supported-formats">
+                <h5 class="mb-3">
+                    <i class="bi bi-file-earmark-check me-2"></i>
+                    Supported File Formats
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="format-item">
+                            <i class="bi bi-file-earmark-pdf format-icon"></i>
+                            <div>
+                                <strong>PDF Files</strong>
+                                <small class="d-block opacity-75">Text-based and scanned PDFs</small>
+                            </div>
+                        </div>
+                        <div class="format-item">
+                            <i class="bi bi-file-earmark-image format-icon"></i>
+                            <div>
+                                <strong>JPEG Images</strong>
+                                <small class="d-block opacity-75">High-quality scans recommended</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="format-item">
+                            <i class="bi bi-file-earmark-image format-icon"></i>
+                            <div>
+                                <strong>PNG Images</strong>
+                                <small class="d-block opacity-75">Clear text and good contrast</small>
+                            </div>
+                        </div>
+                        <div class="format-item">
+                            <i class="bi bi-file-earmark-image format-icon"></i>
+                            <div>
+                                <strong>TIFF Images</strong>
+                                <small class="d-block opacity-75">Professional scan format</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        
+                        <!-- Drag and Drop Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" 
+                                   name="file" 
+                                   id="fileInput" 
+                                   class="file-input" 
+                                   accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif"
+                                   required>
+                            
+                            <div class="upload-content" id="uploadContent">
+                                <i class="bi bi-cloud-upload upload-icon"></i>
+                                <h4 class="mb-3">Drop your bank statement here</h4>
+                                <p class="text-muted mb-3">
+                                    or <strong>click to browse</strong> your files
+                                </p>
+                                <p class="small text-muted">
+                                    Maximum file size: 10MB
+                                </p>
+                            </div>
+                            
+                            <!-- File Preview -->
+                            <div class="file-preview" id="filePreview">
+                                <div class="file-info" id="fileInfo">
+                                    <!-- File details will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="progress-container" id="progressContainer">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small text-muted">Uploading...</span>
+                                <span class="small text-muted" id="progressText">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     id="progressBar" 
+                                     role="progressbar" 
+                                     style="width: 0%" 
+                                     aria-valuenow="0" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Fields -->
+                        <div class="row mt-4" id="additionalFields" style="display: none;">
+                            <div class="col-md-6">
+                                {{ form.bank_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.statement_period_start|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.statement_period_end|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                                <i class="bi bi-upload me-2"></i>
+                                Upload and Process
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Processing Steps -->
+    <div class="row">
+        <div class="col-12">
+            <div class="processing-steps">
+                <h5 class="mb-3">
+                    <i class="bi bi-gear me-2"></i>
+                    What happens after upload?
+                </h5>
+                
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h6>File Validation</h6>
+                        <p>We check the file format, size, and integrity to ensure it can be processed.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h6>Data Extraction</h6>
+                        <p>OCR technology extracts text from images, while PDF parsers handle text-based documents.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h6>Data Processing</h6>
+                        <p>Transaction data is cleaned, validated, and structured into standardized fields.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h6>Review & Export</h6>
+                        <p>View extracted transactions in a table format and export to CSV, Excel, or JSON.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Security Notice -->
+    <div class="row">
+        <div class="col-12">
+            <div class="security-notice">
+                <h5 class="mb-3">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Your Data is Secure
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                All files are encrypted during upload
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Data is processed securely on our servers
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                No data is shared with third parties
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Files can be deleted after processing
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadContent = document.getElementById('uploadContent');
+    const filePreview = document.getElementById('filePreview');
+    const fileInfo = document.getElementById('fileInfo');
+    const submitBtn = document.getElementById('submitBtn');
+    const additionalFields = document.getElementById('additionalFields');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const uploadForm = document.getElementById('uploadForm');
+    
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+    
+    function handleFileSelect(file) {
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/tiff', 'image/tif'];
+        if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().match(/\.(pdf|jpg|jpeg|png|tiff|tif)$/)) {
+            alert('Please select a valid file type (PDF, JPG, PNG, or TIFF)');
+            return;
+        }
+        
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File size must be less than 10MB');
+            return;
+        }
+        
+        // Show file preview
+        showFilePreview(file);
+        
+        // Enable submit button and show additional fields
+        submitBtn.disabled = false;
+        additionalFields.style.display = 'block';
+    }
+    
+    function showFilePreview(file) {
+        uploadContent.style.display = 'none';
+        filePreview.style.display = 'block';
+        
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        const fileType = file.type || 'Unknown';
+        
+        let fileIcon = 'bi-file-earmark';
+        if (file.type === 'application/pdf') {
+            fileIcon = 'bi-file-earmark-pdf text-danger';
+        } else if (file.type.startsWith('image/')) {
+            fileIcon = 'bi-file-earmark-image text-primary';
+        }
+        
+        fileInfo.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="${fileIcon} me-3" style="font-size: 2rem;"></i>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${file.name}</h6>
+                    <p class="mb-1 text-muted small">Size: ${fileSize} MB</p>
+                    <p class="mb-0 text-muted small">Type: ${fileType}</p>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+    }
+    
+    window.clearFile = function() {
+        fileInput.value = '';
+        uploadContent.style.display = 'block';
+        filePreview.style.display = 'none';
+        submitBtn.disabled = true;
+        additionalFields.style.display = 'none';
+    };
+    
+    // Form submission with progress
+    uploadForm.addEventListener('submit', function(e) {
+        if (!fileInput.files[0]) {
+            e.preventDefault();
+            alert('Please select a file to upload');
+            return;
+        }
+        
+        // Show progress
+        uploadArea.classList.add('uploading');
+        progressContainer.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+        
+        // Let the form submit naturally - no need to prevent default
+    });
+    
+    // Auto-focus on upload area
+    uploadArea.addEventListener('click', function() {
+        // fileInput.click();
+    });
+});
+</script>
+{% endblock %}

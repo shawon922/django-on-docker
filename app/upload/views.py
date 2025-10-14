@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import Http404
 from django_sendfile import sendfile
@@ -7,12 +8,15 @@ from .models import FileUpload
 from .forms import FileUploadForm
 
 
+@login_required
 def upload_file(request):
     """Handle file upload"""
     if request.method == 'POST':
         form = FileUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            file_upload = form.save(commit=False)
+            file_upload.user = request.user
+            file_upload.save()
             messages.success(request, 'File uploaded successfully!')
             return redirect('upload:file_list')
     else:
@@ -21,9 +25,10 @@ def upload_file(request):
     return render(request, 'upload/upload_form.html', {'form': form})
 
 
+@login_required
 def file_list(request):
     """Display list of uploaded files"""
-    files = FileUpload.objects.all()
+    files = FileUpload.objects.filter(user=request.user)
     paginator = Paginator(files, 10)  # Show 10 files per page
 
     page_number = request.GET.get('page')
@@ -32,10 +37,11 @@ def file_list(request):
     return render(request, 'upload/file_list.html', {'page_obj': page_obj})
 
 
+@login_required
 def file_detail(request, pk):
     """Display file details"""
     try:
-        file_upload = FileUpload.objects.get(pk=pk)
+        file_upload = FileUpload.objects.get(pk=pk, user=request.user)
     except FileUpload.DoesNotExist:
         messages.error(request, 'File not found.')
         return redirect('upload:file_list')
@@ -43,9 +49,10 @@ def file_detail(request, pk):
     return render(request, 'upload/file_detail.html', {'file': file_upload})
 
 
+@login_required
 def secure_download(request, pk):
     """Secure file download using django-sendfile"""
-    file_upload = get_object_or_404(FileUpload, pk=pk)
+    file_upload = get_object_or_404(FileUpload, pk=pk, user=request.user)
 
     # You can add additional security checks here
     # For example: user authentication, permissions, etc.

@@ -1,0 +1,343 @@
+{% extends 'bank_statement/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Transaction - Bank Statement Extractor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-pencil-square me-2"></i>
+                Edit Transaction
+            </h1>
+            <div class="btn-group">
+                <a href="{% url 'bank_statement:statement_detail' transaction.statement.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Back to Statement
+                </a>
+                <a href="{% url 'bank_statement:transaction_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-list-ul me-2"></i>
+                    All Transactions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pencil me-2"></i>
+                    Transaction Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="transaction-form">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.transaction_date|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.transaction_type|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            {{ form.description|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.debit_amount|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.credit_amount|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.balance|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.reference_number|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Save Changes
+                            </button>
+                            <a href="{% url 'bank_statement:statement_detail' transaction.statement.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Cancel
+                            </a>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="bi bi-trash me-2"></i>
+                                Delete Transaction
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Transaction Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Transaction Info
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <small class="text-muted">Statement</small>
+                        <div class="fw-medium">{{ transaction.statement.original_filename|truncatechars:20 }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Bank</small>
+                        <div class="fw-medium">{{ transaction.statement.bank_name|default:"Unknown" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Created</small>
+                        <div class="fw-medium">{{ transaction.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Modified</small>
+                        <div class="fw-medium">{{ transaction.updated_at|date:"M d, Y" }}</div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Transaction Type</span>
+                    {% if transaction.credit_amount %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-arrow-up me-1"></i>Credit
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger">
+                            <i class="bi bi-arrow-down me-1"></i>Debit
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-muted">Amount</span>
+                    <span class="fw-bold {% if transaction.credit_amount %}text-success{% else %}text-danger{% endif %}">
+                        {% if transaction.credit_amount %}
+                            +${{ transaction.credit_amount|floatformat:2 }}
+                        {% else %}
+                            -${{ transaction.debit_amount|floatformat:2 }}
+                        {% endif %}
+                    </span>
+                </div>
+                
+                {% if transaction.balance %}
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span class="text-muted">Balance</span>
+                        <span class="fw-bold {% if transaction.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ transaction.balance|floatformat:2 }}
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Validation Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Editing Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Only one of Debit or Credit should have a value</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Date should be within the statement period</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Description should be clear and descriptive</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Balance should reflect the running total</small>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Use notes for additional context</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this transaction?</p>
+                <div class="alert alert-warning">
+                    <strong>Transaction Details:</strong><br>
+                    <strong>Date:</strong> {{ transaction.transaction_date|date:"M d, Y" }}<br>
+                    <strong>Description:</strong> {{ transaction.description|truncatechars:50 }}<br>
+                    <strong>Amount:</strong> 
+                    {% if transaction.credit_amount %}
+                        +${{ transaction.credit_amount|floatformat:2 }}
+                    {% else %}
+                        -${{ transaction.debit_amount|floatformat:2 }}
+                    {% endif %}
+                </div>
+                <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Cancel
+                </button>
+                <form method="post" action="{% url 'bank_statement:transaction_delete' transaction.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>
+                        Delete Transaction
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('transaction-form');
+    const debitField = document.getElementById('id_debit_amount');
+    const creditField = document.getElementById('id_credit_amount');
+    
+    // Mutual exclusion for debit/credit fields
+    function handleAmountFields() {
+        debitField.addEventListener('input', function() {
+            if (this.value && parseFloat(this.value) > 0) {
+                creditField.value = '';
+                creditField.disabled = true;
+            } else {
+                creditField.disabled = false;
+            }
+        });
+        
+        creditField.addEventListener('input', function() {
+            if (this.value && parseFloat(this.value) > 0) {
+                debitField.value = '';
+                debitField.disabled = true;
+            } else {
+                debitField.disabled = false;
+            }
+        });
+    }
+    
+    // Initialize amount field handling
+    handleAmountFields();
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const debitValue = parseFloat(debitField.value) || 0;
+        const creditValue = parseFloat(creditField.value) || 0;
+        
+        if (debitValue === 0 && creditValue === 0) {
+            e.preventDefault();
+            showAlert('Please enter either a debit or credit amount.', 'warning');
+            return false;
+        }
+        
+        if (debitValue > 0 && creditValue > 0) {
+            e.preventDefault();
+            showAlert('Please enter either a debit OR credit amount, not both.', 'warning');
+            return false;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
+        submitBtn.disabled = true;
+        
+        // Re-enable button after a delay in case of validation errors
+        setTimeout(function() {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 5000);
+    });
+    
+    // Auto-save draft functionality (optional)
+    let saveTimeout;
+    const formFields = form.querySelectorAll('input, textarea, select');
+    
+    formFields.forEach(function(field) {
+        field.addEventListener('input', function() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(function() {
+                // Could implement auto-save draft here
+            }, 2000);
+        });
+    });
+});
+
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

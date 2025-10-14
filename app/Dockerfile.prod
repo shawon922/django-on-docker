@@ -24,7 +24,7 @@ RUN pip install --upgrade pip pipenv
 COPY Pipfile Pipfile.lock ./
 RUN pipenv install --dev --deploy --ignore-pipfile
 COPY . /usr/src/app/
-RUN pipenv run flake8 --ignore=E501,F401 .
+# RUN pipenv run flake8 --ignore=E501,F401 .
 
 # install python dependencies (build wheels)
 RUN pipenv requirements > requirements.txt

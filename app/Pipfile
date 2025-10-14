@@ -10,10 +10,26 @@ gunicorn = "*"
 django-sendfile2 = "*"
 django-prometheus = "*"
 python-json-logger = "*"
+# Bank statement extraction dependencies
+pytesseract = "*"
+Pillow = "*"
+pdfplumber = "*"
+PyMuPDF = "*"
+camelot-py = {extras = ["cv"], version = "*"}
+tabula-py = "*"
+pandas = "*"
+numpy = "*"
+openpyxl = "*"
+django-crispy-forms = "*"
+crispy-bootstrap5 = "*"
+django-extensions = "*"
+celery = "*"
+redis = "*"
+cryptography = "*"
 
 [dev-packages]
 flake8 = "*"
+debugpy = "*"
 
 [requires]
 python_version = "3.12"
-python_full_version = "3.12.2"

@@ -1,15 +1,21 @@
 services:
   web:
     build: ./app
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "pip install debugpy &&
+             python -m debugpy --listen 0.0.0.0:5678 --wait-for-client manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./app:/usr/src/app
     ports:
       - 8000:8000
+      - 5678:5678  # Debug port
     env_file:
       - ./.env.dev
     depends_on:
       - db
+    environment:
+      - PYTHONPATH=/usr/src/app
+      - DJANGO_SETTINGS_MODULE=hello_django.settings
   
   db:
     image: postgres:16.10-alpine
@@ -24,4 +30,3 @@ services:
 
 volumes:
   postgres_data:
-

@@ -9,7 +9,22 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONBUFFERED 1
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y netcat-openbsd
+RUN apt-get update && apt-get install -y \
+    netcat-openbsd \
+    default-jre \
+    tesseract-ocr \
+    poppler-utils \
+    ghostscript \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create logs directory
+RUN mkdir -p /home/app/web/logs
 
 # Install dependencies
 COPY Pipfile Pipfile.lock ./

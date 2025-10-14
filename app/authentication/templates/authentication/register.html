@@ -1,0 +1,296 @@
+{% extends 'authentication/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Account - Bank Statement Analyzer{% endblock %}
+
+{% block header_title %}Join Us Today{% endblock %}
+{% block header_subtitle %}Create your account to get started{% endblock %}
+
+{% block content %}
+<form method="post" class="auth-form" id="registrationForm">
+    {% csrf_token %}
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                <i class="fas fa-user me-2"></i>First Name
+            </label>
+            <input type="text" name="{{ form.first_name.name }}" class="form-control{% if form.first_name.errors %} is-invalid{% endif %}" placeholder="Enter your first name" id="{{ form.first_name.id_for_label }}" value="{{ form.first_name.value|default:'' }}" required>
+            {% if form.first_name.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.first_name.errors.0 }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                <i class="fas fa-user me-2"></i>Last Name
+            </label>
+            <input type="text" name="{{ form.last_name.name }}" class="form-control{% if form.last_name.errors %} is-invalid{% endif %}" placeholder="Enter your last name" id="{{ form.last_name.id_for_label }}" value="{{ form.last_name.value|default:'' }}" required>
+            {% if form.last_name.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.last_name.errors.0 }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="{{ form.email.id_for_label }}" class="form-label">
+            <i class="fas fa-envelope me-2"></i>Email Address
+        </label>
+        <input type="email" name="{{ form.email.name }}" class="form-control{% if form.email.errors %} is-invalid{% endif %}" placeholder="Enter your email address" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" required>
+        {% if form.email.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.email.errors.0 }}
+            </div>
+        {% endif %}
+        <div class="form-text">
+            <i class="fas fa-info-circle me-1"></i>We'll send a verification email to this address
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="{{ form.password1.id_for_label }}" class="form-label">
+            <i class="fas fa-lock me-2"></i>Password
+        </label>
+        <div class="position-relative">
+            <input type="password" name="{{ form.password1.name }}" class="form-control{% if form.password1.errors %} is-invalid{% endif %}" placeholder="Enter your password" id="{{ form.password1.id_for_label }}" required>
+            <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y pe-3" 
+                    onclick="togglePassword('{{ form.password1.id_for_label }}')"
+                    style="border: none; background: none; z-index: 10;">
+                <i class="fas fa-eye" id="toggleIcon-{{ form.password1.id_for_label }}"></i>
+            </button>
+        </div>
+        {% if form.password1.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.password1.errors.0 }}
+            </div>
+        {% endif %}
+        
+        <!-- Password strength indicator -->
+        <div class="password-strength mt-2">
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar" id="passwordStrengthBar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <small class="form-text" id="passwordStrengthText">Password strength: <span id="strengthLevel">Weak</span></small>
+        </div>
+        
+        <div class="form-text mt-2">
+            <i class="fas fa-shield-alt me-1"></i>Password must contain:
+            <ul class="password-requirements mt-1 mb-0">
+                <li id="req-length"><i class="fas fa-times text-danger"></i> At least 8 characters</li>
+                <li id="req-uppercase"><i class="fas fa-times text-danger"></i> One uppercase letter</li>
+                <li id="req-lowercase"><i class="fas fa-times text-danger"></i> One lowercase letter</li>
+                <li id="req-number"><i class="fas fa-times text-danger"></i> One number</li>
+                <li id="req-special"><i class="fas fa-times text-danger"></i> One special character</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="{{ form.password2.id_for_label }}" class="form-label">
+            <i class="fas fa-lock me-2"></i>Confirm Password
+        </label>
+        <div class="position-relative">
+            <input type="password" name="{{ form.password2.name }}" class="form-control{% if form.password2.errors %} is-invalid{% endif %}" placeholder="Confirm your password" id="{{ form.password2.id_for_label }}" required>
+            <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y pe-3" 
+                    onclick="togglePassword('{{ form.password2.id_for_label }}')"
+                    style="border: none; background: none; z-index: 10;">
+                <i class="fas fa-eye" id="toggleIcon-{{ form.password2.id_for_label }}"></i>
+            </button>
+        </div>
+        {% if form.password2.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.password2.errors.0 }}
+            </div>
+        {% endif %}
+        <div id="passwordMatchIndicator" class="form-text"></div>
+    </div>
+    
+    <div class="mb-3">
+        <div class="form-check">
+            {{ form.terms_accepted }}
+            <label class="form-check-label" for="{{ form.terms_accepted.id_for_label }}">
+                I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and 
+                <a href="#" class="text-decoration-none">Privacy Policy</a>
+            </label>
+        </div>
+        {% if form.terms_accepted.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.terms_accepted.errors.0 }}
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ form.non_field_errors.0 }}
+        </div>
+    {% endif %}
+    
+    <div class="d-grid gap-2 mb-3">
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+            <span class="btn-text">
+                <i class="fas fa-user-plus me-2"></i>Create Account
+            </span>
+            <span class="loading-spinner">
+                <i class="fas fa-spinner fa-spin me-2"></i>Creating account...
+            </span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block auth_links %}
+<div class="auth-links">
+    <p class="mb-2">Already have an account?</p>
+    <a href="{% url 'authentication:login' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function togglePassword(fieldId) {
+        const passwordField = document.getElementById(fieldId);
+        const toggleIcon = document.getElementById('toggleIcon-' + fieldId);
+        
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+    
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        const requirements = {
+            length: password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            lowercase: /[a-z]/.test(password),
+            number: /\d/.test(password),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        };
+        
+        // Update requirement indicators
+        Object.keys(requirements).forEach(req => {
+            const element = document.getElementById('req-' + req);
+            const icon = element.querySelector('i');
+            
+            if (requirements[req]) {
+                icon.className = 'fas fa-check text-success';
+                strength++;
+            } else {
+                icon.className = 'fas fa-times text-danger';
+            }
+        });
+        
+        // Update strength bar
+        const strengthBar = document.getElementById('passwordStrengthBar');
+        const strengthText = document.getElementById('strengthLevel');
+        const percentage = (strength / 5) * 100;
+        
+        strengthBar.style.width = percentage + '%';
+        
+        if (strength <= 2) {
+            strengthBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Weak';
+            strengthText.className = 'text-danger';
+        } else if (strength <= 3) {
+            strengthBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Fair';
+            strengthText.className = 'text-warning';
+        } else if (strength <= 4) {
+            strengthBar.className = 'progress-bar bg-info';
+            strengthText.textContent = 'Good';
+            strengthText.className = 'text-info';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Strong';
+            strengthText.className = 'text-success';
+        }
+        
+        return strength;
+    }
+    
+    function checkPasswordMatch() {
+        const password1 = document.getElementById('{{ form.password1.id_for_label }}').value;
+        const password2 = document.getElementById('{{ form.password2.id_for_label }}').value;
+        const indicator = document.getElementById('passwordMatchIndicator');
+        
+        if (password2.length > 0) {
+            if (password1 === password2) {
+                indicator.innerHTML = '<i class="fas fa-check text-success me-1"></i>Passwords match';
+                indicator.className = 'form-text text-success';
+            } else {
+                indicator.innerHTML = '<i class="fas fa-times text-danger me-1"></i>Passwords do not match';
+                indicator.className = 'form-text text-danger';
+            }
+        } else {
+            indicator.innerHTML = '';
+        }
+    }
+    
+    $(document).ready(function() {
+        // Auto-focus on first name field
+        $('#{{ form.first_name.id_for_label }}').focus();
+        
+        // Password strength checking
+        $('#{{ form.password1.id_for_label }}').on('input', function() {
+            checkPasswordStrength($(this).val());
+            checkPasswordMatch();
+        });
+        
+        // Password confirmation checking
+        $('#{{ form.password2.id_for_label }}').on('input', checkPasswordMatch);
+        
+        // Real-time email validation
+        $('#{{ form.email.id_for_label }}').on('input', function() {
+            const email = $(this).val();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (email && !emailRegex.test(email)) {
+                $(this).addClass('is-invalid');
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+        
+        // Form validation before submit
+        $('#registrationForm').on('submit', function(e) {
+            const password1 = $('#{{ form.password1.id_for_label }}').val();
+            const password2 = $('#{{ form.password2.id_for_label }}').val();
+            const termsAccepted = $('#{{ form.terms_accepted.id_for_label }}').is(':checked');
+            
+            if (password1 !== password2) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                return false;
+            }
+            
+            if (!termsAccepted) {
+                e.preventDefault();
+                alert('Please accept the Terms of Service and Privacy Policy.');
+                return false;
+            }
+            
+            if (checkPasswordStrength(password1) < 3) {
+                e.preventDefault();
+                alert('Please choose a stronger password.');
+                return false;
+            }
+            
+            // If all validations pass, allow form submission
+            return true;
+        });
+    });
+</script>
+{% endblock %}

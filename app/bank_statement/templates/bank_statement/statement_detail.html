@@ -1,0 +1,452 @@
+{% extends 'bank_statement/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ statement.original_filename }} - Bank Statement Extractor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                Statement Details
+            </h1>
+            <div class="btn-group">
+                <a href="{% url 'bank_statement:statement_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Back to List
+                </a>
+                {% if statement.processing_status == 'completed' %}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-2"></i>
+                            Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'bank_statement:export_data' statement.id %}?format=csv">
+                                <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'bank_statement:export_data' statement.id %}?format=excel">
+                                <i class="bi bi-file-earmark-excel me-2"></i>Excel
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'bank_statement:export_data' statement.id %}?format=json">
+                                <i class="bi bi-file-earmark-code me-2"></i>JSON
+                            </a></li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statement Information -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Statement Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">File Name:</dt>
+                            <dd class="col-sm-8">
+                                <div class="d-flex align-items-center">
+                                    {% if statement.file_type == 'pdf' %}
+                                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-earmark-image text-primary me-2"></i>
+                                    {% endif %}
+                                    {{ statement.original_filename }}
+                                </div>
+                            </dd>
+                            
+                            <dt class="col-sm-4">File Size:</dt>
+                            <dd class="col-sm-8">{{ statement.file_size|filesizeformat }}</dd>
+                            
+                            <dt class="col-sm-4">File Type:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-light text-dark">{{ statement.file_type|upper }}</span>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Uploaded:</dt>
+                            <dd class="col-sm-8">{{ statement.upload_date|date:"F d, Y H:i" }}</dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Bank:</dt>
+                            <dd class="col-sm-8">
+                                {% if statement.bank_name %}
+                                    <span class="badge bg-primary">{{ statement.get_bank_name_display }}</span>
+                                {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Period:</dt>
+                            <dd class="col-sm-8">
+                                {% if statement.statement_period %}
+                                    {{ statement.statement_period }}
+                                {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                {% if statement.processing_status == 'completed' %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle me-1"></i>Completed
+                                    </span>
+                                {% elif statement.status == 'processing' %}
+                                    <span class="badge bg-warning">
+                                        <i class="bi bi-clock me-1"></i>Processing
+                                    </span>
+                                {% elif statement.status == 'failed' %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle me-1"></i>Failed
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-hourglass me-1"></i>Pending
+                                    </span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-4">Processed:</dt>
+                            <dd class="col-sm-8">
+                                {% if statement.processing_completed_at %}
+                                    {{ statement.processing_completed_at|date:"F d, Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">Not yet processed</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Transaction Summary -->
+        {% if statement.processing_status == 'completed' %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        Transaction Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-12 mb-3">
+                            <h4 class="text-primary">{{ transaction_stats.total_count }}</h4>
+                            <small class="text-muted">Total Transactions</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="text-success">${{ transaction_stats.total_credits|floatformat:2 }}</h5>
+                            <small class="text-muted">Total Credits</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-danger">${{ transaction_stats.total_debits|floatformat:2 }}</h5>
+                            <small class="text-muted">Total Debits</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <h5 class="{% if transaction_stats.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ transaction_stats.net_amount|floatformat:2 }}
+                        </h5>
+                        <small class="text-muted">Net Amount</small>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Processing Logs -->
+        {% if processing_logs %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-activity me-2"></i>
+                        Processing Log
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for log in processing_logs %}
+                            <div class="d-flex mb-3">
+                                <div class="flex-shrink-0">
+                                    {% if log.level == 'info' %}
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    {% elif log.level == 'error' %}
+                                        <i class="bi bi-x-circle-fill text-danger"></i>
+                                    {% elif log.level == 'warning' %}
+                                        <i class="bi bi-clock-fill text-warning"></i>
+                                    {% else %}
+                                        <i class="bi bi-info-circle-fill text-info"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <p class="mb-1 small">{{ log.message }}</p>
+                                    <small class="text-muted">{{ log.timestamp|date:"M d, H:i" }}</small>
+                                    {% if log.details %}
+                                        <div class="mt-1">
+                                            <small class="text-danger">{{ log.details|truncatechars:100 }}</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Transactions -->
+{% if statement.processing_status == 'completed' and transactions %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-ul me-2"></i>
+                        Transactions ({{ transactions|length }})
+                    </h5>
+                    
+                    <!-- Transaction Filters -->
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" onclick="filterTransactions('all')" id="filter-all">
+                            All
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="filterTransactions('credit')" id="filter-credit">
+                            Credits
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="filterTransactions('debit')" id="filter-debit">
+                            Debits
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="transactionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Debit</th>
+                                    <th class="text-end">Credit</th>
+                                    <th class="text-end">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr class="transaction-row" 
+                                    data-type="{% if transaction.credit_amount %}credit{% else %}debit{% endif %}">
+                                    <td>
+                                        <small>{{ transaction.transaction_date|date:"M d, Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ transaction.description|truncatechars:50 }}</div>
+                                        {% if transaction.transaction_type %}
+                                            <small class="text-muted">{{ transaction.transaction_type }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if transaction.credit_amount %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up me-1"></i>Credit
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down me-1"></i>Debit
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if transaction.debit_amount %}
+                                            <span class="text-danger fw-medium">
+                                                ${{ transaction.debit_amount|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if transaction.credit_amount %}
+                                            <span class="text-success fw-medium">
+                                                ${{ transaction.credit_amount|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if transaction.balance %}
+                                            <span class="fw-medium {% if transaction.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                ${{ transaction.balance|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% elif statement.status == 'processing' %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-warning mb-3" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <h5 class="text-muted">Processing Statement</h5>
+                    <p class="text-muted">Please wait while we extract and process the transaction data.</p>
+                    <div class="progress mt-3" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 100%" 
+                             aria-valuenow="100" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% elif statement.status == 'failed' %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-danger" style="font-size: 4rem;"></i>
+                    <h5 class="text-danger mt-3">Processing Failed</h5>
+                    <p class="text-muted">There was an error processing this statement.</p>
+                    {% if processing_logs %}
+                        {% for log in processing_logs %}
+                            {% if log.level == 'error' and log.details %}
+                                <div class="alert alert-danger mt-3">
+                                    <strong>Error:</strong> {{ log.details }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <button type="button" class="btn btn-warning" onclick="retryProcessing({{ statement.id }})">
+                        <i class="bi bi-arrow-clockwise me-2"></i>
+                        Retry Processing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-hourglass text-secondary" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">Pending Processing</h5>
+                    <p class="text-muted">This statement is waiting to be processed.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterTransactions(type) {
+    const rows = document.querySelectorAll('.transaction-row');
+    const buttons = document.querySelectorAll('[id^="filter-"]');
+    
+    // Reset button states
+    buttons.forEach(btn => {
+        btn.classList.remove('btn-secondary', 'btn-success', 'btn-danger');
+        btn.classList.add('btn-outline-secondary', 'btn-outline-success', 'btn-outline-danger');
+    });
+    
+    // Set active button
+    const activeBtn = document.getElementById(`filter-${type}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('btn-outline-secondary', 'btn-outline-success', 'btn-outline-danger');
+        if (type === 'all') {
+            activeBtn.classList.add('btn-secondary');
+        } else if (type === 'credit') {
+            activeBtn.classList.add('btn-success');
+        } else if (type === 'debit') {
+            activeBtn.classList.add('btn-danger');
+        }
+    }
+    
+    // Filter rows
+    rows.forEach(row => {
+        if (type === 'all' || row.dataset.type === type) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function retryProcessing(statementId) {
+    if (confirm('Retry processing this statement?')) {
+        fetch(`/bank-statements/retry-processing/${statementId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to retry processing: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while retrying processing.');
+        });
+    }
+}
+
+// Auto-refresh for processing statements
+{% if statement.status == 'processing' %}
+    setTimeout(function() {
+        location.reload();
+    }, 30000); // Refresh every 30 seconds
+{% endif %}
+
+// Initialize filter
+document.addEventListener('DOMContentLoaded', function() {
+    filterTransactions('all');
+});
+</script>
+{% endblock %}

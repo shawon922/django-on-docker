@@ -1,0 +1,357 @@
+{% extends 'bank_statement/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Dashboard - Bank Statement Extractor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-speedometer2 me-2"></i>
+                Dashboard
+            </h1>
+            <a href="{% url 'bank_statement:upload_statement' %}" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-2"></i>
+                Upload Statement
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h6 class="text-uppercase mb-1">Total Statements</h6>
+                    <h2 class="mb-0">{{ stats.total_statements }}</h2>
+                </div>
+                <div class="ms-3">
+                    <i class="bi bi-file-earmark-text" style="font-size: 2rem; opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card success">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h6 class="text-uppercase mb-1">Processed</h6>
+                    <h2 class="mb-0">{{ stats.processed_statements }}</h2>
+                </div>
+                <div class="ms-3">
+                    <i class="bi bi-check-circle" style="font-size: 2rem; opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card warning">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h6 class="text-uppercase mb-1">Processing</h6>
+                    <h2 class="mb-0">{{ stats.processing_statements }}</h2>
+                </div>
+                <div class="ms-3">
+                    <i class="bi bi-clock" style="font-size: 2rem; opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card danger">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h6 class="text-uppercase mb-1">Failed</h6>
+                    <h2 class="mb-0">{{ stats.failed_statements }}</h2>
+                </div>
+                <div class="ms-3">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 2rem; opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Total Transactions</h6>
+                        <h3 class="mb-0 text-primary">{{ stats.total_transactions }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-list-ul text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Total Credits</h6>
+                        <h3 class="mb-0 text-success">${{ stats.total_credits|floatformat:2 }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-arrow-up-circle text-success" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-muted mb-1">Total Debits</h6>
+                        <h3 class="mb-0 text-danger">${{ stats.total_debits|floatformat:2 }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-arrow-down-circle text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Statements -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Recent Statements
+                </h5>
+                <a href="{% url 'bank_statement:statement_list' %}" class="btn btn-sm btn-outline-primary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_statements %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Bank</th>
+                                    <th>Status</th>
+                                    <th>Uploaded</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for statement in recent_statements %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if statement.file_type == 'pdf' %}
+                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                            {% else %}
+                                                <i class="bi bi-file-earmark-image text-primary me-2"></i>
+                                            {% endif %}
+                                            <span class="fw-medium">{{ statement.original_filename|truncatechars:30 }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if statement.bank_name %}
+                                            <span class="badge bg-light text-dark">{{ statement.get_bank_name_display }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if statement.processing_status == 'completed' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle me-1"></i>Completed
+                                            </span>
+                                        {% elif statement.status == 'processing' %}
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-clock me-1"></i>Processing
+                                            </span>
+                                        {% elif statement.status == 'failed' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle me-1"></i>Failed
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-hourglass me-1"></i>Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ statement.upload_date|timesince }} ago</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'bank_statement:statement_detail' statement.id %}" 
+                                               class="btn btn-outline-primary" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if statement.processing_status == 'completed' %}
+                                                <a href="{% url 'bank_statement:export_data' statement.id %}?format=csv" 
+                                                   class="btn btn-outline-success" title="Export CSV">
+                                                    <i class="bi bi-download"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">No statements uploaded yet</h5>
+                        <p class="text-muted">Upload your first bank statement to get started.</p>
+                        <a href="{% url 'bank_statement:upload_statement' %}" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload me-2"></i>
+                            Upload Statement
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightning me-2"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="{% url 'bank_statement:upload_statement' %}" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        Upload New Statement
+                    </a>
+                    
+                    <a href="{% url 'bank_statement:statement_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        View All Statements
+                    </a>
+                    
+                    {% if recent_statements %}
+                        <a href="{% url 'bank_statement:transaction_list' %}" class="btn btn-outline-success">
+                            <i class="bi bi-list-ul me-2"></i>
+                            Browse Transactions
+                        </a>
+                        
+                        <a href="{% url 'bank_statement:export_all_transactions' %}?format=csv" class="btn btn-outline-info">
+                            <i class="bi bi-download me-2"></i>
+                            Export All Data
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Processing Status -->
+        {% if processing_logs %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-activity me-2"></i>
+                        Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for log in processing_logs %}
+                            <div class="d-flex mb-3">
+                                <div class="flex-shrink-0">
+                                    {% if log.level == 'info' %}
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    {% elif log.level == 'error' %}
+                                        <i class="bi bi-x-circle-fill text-danger"></i>
+                                    {% else %}
+                                        <i class="bi bi-clock-fill text-warning"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">{{ log.statement.original_filename|truncatechars:25 }}</h6>
+                                    <p class="mb-1 small text-muted">{{ log.message }}</p>
+                                    <small class="text-muted">{{ log.created_at|timesince }} ago</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Processing Progress (if any statements are being processed) -->
+{% if stats.processing_statements > 0 %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear me-2"></i>
+                    Processing Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    {{ stats.processing_statements }} statement(s) are currently being processed. 
+                    This page will automatically refresh to show updates.
+                </div>
+                
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         style="width: 100%" 
+                         aria-valuenow="100" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh page if there are processing statements
+    {% if stats.processing_statements > 0 %}
+        setTimeout(function() {
+            location.reload();
+        }, 30000); // Refresh every 30 seconds
+    {% endif %}
+    
+    // Add tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

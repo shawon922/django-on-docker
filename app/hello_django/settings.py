@@ -32,6 +32,7 @@ CSRF_TRUSTED_ORIGINS = ["http://localhost:1337", "http://127.0.0.1:1337"]
 # Application definition
 
 INSTALLED_APPS = [
+    'authentication',  # Must be before admin for custom user model
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,8 +40,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_prometheus',
-    'myapp',
     'upload',
+    'bank_statement',
+    'crispy_forms',
+    'crispy_bootstrap5',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -141,6 +145,63 @@ SENDFILE_URL = '/protected/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'authentication.User'
+
+# Authentication Settings
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/auth/login/'
+
+# Session Settings
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# CSRF Settings
+CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False
+
+# Security Settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year in production
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = not DEBUG  # Force HTTPS in production
+
+# Password Reset Settings
+PASSWORD_RESET_TIMEOUT = 3600  # 1 hour
+
+# Email Verification Settings
+EMAIL_VERIFICATION_TIMEOUT = 86400  # 24 hours
+
+# Account Security Settings
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_DURATION = 1800  # 30 minutes
+PASSWORD_HISTORY_COUNT = 5
+FORCE_PASSWORD_CHANGE_DAYS = 90
+
+# Two-Factor Authentication Settings
+TWO_FACTOR_ENABLED = True
+TWO_FACTOR_BACKUP_TOKENS = 10
+
+# Email Settings (for development - update for production)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@bankstatement.com')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
 # Logging configuration
 LOGGING = {
     'version': 1,
@@ -183,11 +244,6 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
-        'myapp': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
         'upload': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
@@ -195,3 +251,28 @@ LOGGING = {
         },
     },
 }
+
+# Crispy Forms Configuration
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# File Upload Settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+
+# Security Settings for Bank Statement App
+SECURE_FILE_STORAGE = True
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'default-key-change-in-production')
+
+# Celery Configuration (for async processing)
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# OCR and PDF Processing Settings
+TESSERACT_CMD = os.environ.get('TESSERACT_CMD', '/usr/bin/tesseract')
+PDF_PROCESSING_TIMEOUT = 300  # 5 minutes
+OCR_PROCESSING_TIMEOUT = 600  # 10 minutes

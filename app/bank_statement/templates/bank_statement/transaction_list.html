@@ -1,0 +1,471 @@
+{% extends 'bank_statement/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Transactions - Bank Statement Extractor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-list-ul me-2"></i>
+                All Transactions
+            </h1>
+            <div class="btn-group">
+                <a href="{% url 'bank_statement:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    Dashboard
+                </a>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-download me-2"></i>
+                        Export All
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'bank_statement:export_all_transactions' %}?format=csv{% if request.GET %}{% for key, value in request.GET.items %}&{{ key }}={{ value }}{% endfor %}{% endif %}">
+                            <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'bank_statement:export_all_transactions' %}?format=excel{% if request.GET %}{% for key, value in request.GET.items %}&{{ key }}={{ value }}{% endfor %}{% endif %}">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Excel
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'bank_statement:export_all_transactions' %}?format=json{% if request.GET %}{% for key, value in request.GET.items %}&{{ key }}={{ value }}{% endfor %}{% endif %}">
+                            <i class="bi bi-file-earmark-code me-2"></i>JSON
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-funnel me-2"></i>
+                    Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-2">
+                        <label for="transaction_type" class="form-label">Type</label>
+                        <select name="transaction_type" id="transaction_type" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="credit" {% if request.GET.transaction_type == 'credit' %}selected{% endif %}>Credits</option>
+                            <option value="debit" {% if request.GET.transaction_type == 'debit' %}selected{% endif %}>Debits</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="bank_name" class="form-label">Bank</label>
+                        <select name="bank_name" id="bank_name" class="form-select">
+                            <option value="">All Banks</option>
+                            {% for bank in banks %}
+                                <option value="{{ bank }}" {% if request.GET.bank_name == bank %}selected{% endif %}>{{ bank }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="date_from" class="form-label">From Date</label>
+                        <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from }}">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="date_to" class="form-label">To Date</label>
+                        <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="min_amount" class="form-label">Min Amount</label>
+                        <input type="number" name="min_amount" id="min_amount" class="form-control" 
+                               step="0.01" placeholder="0.00" value="{{ request.GET.min_amount }}">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="max_amount" class="form-label">Max Amount</label>
+                        <input type="number" name="max_amount" id="max_amount" class="form-control" 
+                               step="0.01" placeholder="0.00" value="{{ request.GET.max_amount }}">
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <label for="search" class="form-label">Search Description</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               placeholder="Search transaction descriptions..." value="{{ request.GET.search }}">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">
+                                <i class="bi bi-search me-2"></i>
+                                Apply Filters
+                            </button>
+                            <a href="{% url 'bank_statement:transaction_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ total_count }}</h5>
+                <p class="card-text text-muted">Total Transactions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">${{ total_credits|floatformat:2 }}</h5>
+                <p class="card-text text-muted">Total Credits</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-danger">${{ total_debits|floatformat:2 }}</h5>
+                <p class="card-text text-muted">Total Debits</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title {% if net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ net_amount|floatformat:2 }}
+                </h5>
+                <p class="card-text text-muted">Net Amount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Transactions</h5>
+                <div class="d-flex align-items-center">
+                    <span class="text-muted me-3">{{ transactions.start_index }}-{{ transactions.end_index }} of {{ total_count }}</span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleView('table')" id="view-table">
+                            <i class="bi bi-table"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleView('cards')" id="view-cards">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                    <!-- Table View -->
+                    <div id="table-view">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <a href="?{% for key, value in request.GET.items %}{% if key != 'ordering' %}{{ key }}={{ value }}&{% endif %}{% endfor %}ordering={% if request.GET.ordering == 'transaction_date' %}-{% endif %}transaction_date" 
+                                               class="text-decoration-none text-dark">
+                                                Date
+                                                {% if request.GET.ordering == 'transaction_date' %}
+                                                    <i class="bi bi-arrow-up"></i>
+                                                {% elif request.GET.ordering == '-transaction_date' %}
+                                                    <i class="bi bi-arrow-down"></i>
+                                                {% endif %}
+                                            </a>
+                                        </th>
+                                        <th>Description</th>
+                                        <th>Statement</th>
+                                        <th>Type</th>
+                                        <th class="text-end">
+                                            <a href="?{% for key, value in request.GET.items %}{% if key != 'ordering' %}{{ key }}={{ value }}&{% endif %}{% endfor %}ordering={% if request.GET.ordering == 'debit_amount' %}-{% endif %}debit_amount" 
+                                               class="text-decoration-none text-dark">
+                                                Debit
+                                                {% if request.GET.ordering == 'debit_amount' %}
+                                                    <i class="bi bi-arrow-up"></i>
+                                                {% elif request.GET.ordering == '-debit_amount' %}
+                                                    <i class="bi bi-arrow-down"></i>
+                                                {% endif %}
+                                            </a>
+                                        </th>
+                                        <th class="text-end">
+                                            <a href="?{% for key, value in request.GET.items %}{% if key != 'ordering' %}{{ key }}={{ value }}&{% endif %}{% endfor %}ordering={% if request.GET.ordering == 'credit_amount' %}-{% endif %}credit_amount" 
+                                               class="text-decoration-none text-dark">
+                                                Credit
+                                                {% if request.GET.ordering == 'credit_amount' %}
+                                                    <i class="bi bi-arrow-up"></i>
+                                                {% elif request.GET.ordering == '-credit_amount' %}
+                                                    <i class="bi bi-arrow-down"></i>
+                                                {% endif %}
+                                            </a>
+                                        </th>
+                                        <th class="text-end">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr>
+                                        <td>
+                                            <small>{{ transaction.transaction_date|date:"M d, Y" }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-medium">{{ transaction.description|truncatechars:60 }}</div>
+                                            {% if transaction.transaction_type %}
+                                                <small class="text-muted">{{ transaction.transaction_type }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'bank_statement:statement_detail' transaction.statement.id %}" 
+                                               class="text-decoration-none">
+                                                <small>{{ transaction.statement.original_filename|truncatechars:20 }}</small>
+                                            </a>
+                                            {% if transaction.statement.bank_name %}
+                                                <br><span class="badge bg-light text-dark">{{ transaction.statement.bank_name }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if transaction.credit_amount %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-arrow-up me-1"></i>Credit
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-arrow-down me-1"></i>Debit
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if transaction.debit_amount %}
+                                                <span class="text-danger fw-medium">
+                                                    ${{ transaction.debit_amount|floatformat:2 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if transaction.credit_amount %}
+                                                <span class="text-success fw-medium">
+                                                    ${{ transaction.credit_amount|floatformat:2 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if transaction.balance %}
+                                                <span class="fw-medium {% if transaction.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    ${{ transaction.balance|floatformat:2 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Card View -->
+                    <div id="card-view" style="display: none;">
+                        <div class="row">
+                            {% for transaction in transactions %}
+                            <div class="col-lg-6 col-xl-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <small class="text-muted">{{ transaction.transaction_date|date:"M d, Y" }}</small>
+                                            {% if transaction.credit_amount %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-arrow-up me-1"></i>Credit
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-arrow-down me-1"></i>Debit
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <h6 class="card-title">{{ transaction.description|truncatechars:40 }}</h6>
+                                        
+                                        {% if transaction.transaction_type %}
+                                            <p class="card-text small text-muted">{{ transaction.transaction_type }}</p>
+                                        {% endif %}
+                                        
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                {% if transaction.debit_amount %}
+                                                    <div class="text-danger fw-bold">
+                                                        -${{ transaction.debit_amount|floatformat:2 }}
+                                                    </div>
+                                                {% endif %}
+                                                {% if transaction.credit_amount %}
+                                                    <div class="text-success fw-bold">
+                                                        +${{ transaction.credit_amount|floatformat:2 }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if transaction.balance %}
+                                                <div class="text-end">
+                                                    <small class="text-muted">Balance</small>
+                                                    <div class="fw-medium {% if transaction.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                        ${{ transaction.balance|floatformat:2 }}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="mt-2">
+                                            <a href="{% url 'bank_statement:statement_detail' transaction.statement.id %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-file-earmark-text me-1"></i>
+                                                View Statement
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                        <nav aria-label="Transactions pagination" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">
+                                            <i class="bi bi-chevron-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">
+                                            <i class="bi bi-chevron-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-list-ul text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="text-muted mt-3">No transactions found</h4>
+                        {% if request.GET %}
+                            <p class="text-muted">Try adjusting your filters or search terms.</p>
+                            <a href="{% url 'bank_statement:transaction_list' %}" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Clear Filters
+                            </a>
+                        {% else %}
+                            <p class="text-muted">Upload and process bank statements to see transactions here.</p>
+                        {% endif %}
+                        <a href="{% url 'bank_statement:upload_statement' %}" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload me-2"></i>
+                            Upload Statement
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleView(viewType) {
+    const tableView = document.getElementById('table-view');
+    const cardView = document.getElementById('card-view');
+    const tableBtn = document.getElementById('view-table');
+    const cardBtn = document.getElementById('view-cards');
+    
+    if (viewType === 'table') {
+        tableView.style.display = 'block';
+        cardView.style.display = 'none';
+        tableBtn.classList.remove('btn-outline-secondary');
+        tableBtn.classList.add('btn-secondary');
+        cardBtn.classList.remove('btn-secondary');
+        cardBtn.classList.add('btn-outline-secondary');
+        localStorage.setItem('transactionView', 'table');
+    } else {
+        tableView.style.display = 'none';
+        cardView.style.display = 'block';
+        cardBtn.classList.remove('btn-outline-secondary');
+        cardBtn.classList.add('btn-secondary');
+        tableBtn.classList.remove('btn-secondary');
+        tableBtn.classList.add('btn-outline-secondary');
+        localStorage.setItem('transactionView', 'cards');
+    }
+}
+
+// Form auto-submit on filter change
+document.addEventListener('DOMContentLoaded', function() {
+    // Restore view preference
+    const savedView = localStorage.getItem('transactionView') || 'table';
+    toggleView(savedView);
+    
+    // Auto-submit on select changes
+    const filterSelects = document.querySelectorAll('#transaction_type, #bank_name');
+    filterSelects.forEach(function(select) {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+    
+    // Auto-submit on date changes
+    const dateInputs = document.querySelectorAll('#date_from, #date_to');
+    dateInputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}
