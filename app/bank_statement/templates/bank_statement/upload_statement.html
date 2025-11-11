@@ -246,7 +246,7 @@
                                     or <strong>click to browse</strong> your files
                                 </p>
                                 <p class="small text-muted">
-                                    Maximum file size: 10MB
+                                    Maximum file size: 200MB
                                 </p>
                             </div>
                             
@@ -437,9 +437,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Validate file size (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            alert('File size must be less than 10MB');
+        // Validate file size (200MB)
+        if (file.size > 200 * 1024 * 1024) {
+            alert('File size must be less than 200MB');
             return;
         }
         

@@ -41,6 +41,15 @@ from .models import ProcessingLog
 
 logger = logging.getLogger(__name__)
 
+# Configure pytesseract binary path if provided in settings
+if pytesseract is not None:
+    try:
+        tess_cmd = getattr(settings, 'TESSERACT_CMD', None)
+        if tess_cmd:
+            pytesseract.pytesseract.tesseract_cmd = tess_cmd
+    except Exception:
+        pass
+
 
 class BankStatementProcessor:
     """Main class for processing bank statements from PDF and image files"""
@@ -114,31 +123,29 @@ class BankStatementProcessor:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
-            # Perform OCR with different configurations
-            configs = [
-                '--psm 6',  # Uniform block of text
-                '--psm 4',  # Single column of text
-                '--psm 3',  # Fully automatic page segmentation
-            ]
+            # Perform OCR with different languages and configurations
+            langs = self._get_ocr_languages()
+            configs = ['--oem 3 --psm 6', '--oem 3 --psm 4', '--oem 3 --psm 3']
             
             best_text = ""
-            best_confidence = 0
+            best_confidence = 0.0
             
-            for config in configs:
-                try:
-                    text = pytesseract.image_to_string(image, config=config)
-                    # Get confidence data
-                    data = pytesseract.image_to_data(image, config=config, output_type=pytesseract.Output.DICT)
-                    confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
-                    avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-                    
-                    if avg_confidence > best_confidence:
-                        best_confidence = avg_confidence
-                        best_text = text
+            for lang in langs:
+                for config in configs:
+                    try:
+                        text = pytesseract.image_to_string(image, lang=lang, config=config)
+                        # Get confidence data
+                        data = pytesseract.image_to_data(image, lang=lang, config=config, output_type=pytesseract.Output.DICT)
+                        confidences = [int(conf) for conf in data.get('conf', []) if str(conf).isdigit() and int(conf) >= 0]
+                        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
                         
-                except Exception as e:
-                    self._log_warning(f"OCR config {config} failed: {str(e)}")
-                    continue
+                        if avg_confidence > best_confidence and text and text.strip():
+                            best_confidence = avg_confidence
+                            best_text = text
+                        
+                    except Exception as e:
+                        self._log_warning(f"OCR failed: lang={lang} cfg={config} err={str(e)}")
+                        continue
             
             if not best_text.strip():
                 raise Exception("No text extracted from image")
@@ -234,21 +241,29 @@ class BankStatementProcessor:
                 # Simple binarization to reduce noise
                 bw = gray.point(lambda x: 0 if x < 180 else 255, '1')
 
-                configs = ['--psm 6', '--psm 4', '--psm 3']
+                images_to_try = [gray, bw]
+                langs = self._get_ocr_languages()
+                configs = ['--oem 3 --psm 6', '--oem 3 --psm 4', '--oem 3 --psm 3']
+                rotations = [0, 90, 270]
+
                 best_text = ""
                 best_conf = 0.0
-                for cfg in configs:
-                    try:
-                        text = pytesseract.image_to_string(bw, config=cfg)
-                        data = pytesseract.image_to_data(bw, config=cfg, output_type=pytesseract.Output.DICT)
-                        confs = [int(c) for c in data.get('conf', []) if str(c).isdigit() and int(c) >= 0]
-                        avg_conf = (sum(confs) / len(confs)) if confs else 0.0
-                        if avg_conf > best_conf and text and text.strip():
-                            best_conf = avg_conf
-                            best_text = text
-                    except Exception as e:
-                        self._log_warning(f"OCR failed on page {page_index+1} cfg {cfg}: {e}")
-                        continue
+                for img in images_to_try:
+                    for rot in rotations:
+                        img_rot = img.rotate(rot, expand=True) if rot else img
+                        for lang in langs:
+                            for cfg in configs:
+                                try:
+                                    text = pytesseract.image_to_string(img_rot, lang=lang, config=cfg)
+                                    data = pytesseract.image_to_data(img_rot, lang=lang, config=cfg, output_type=pytesseract.Output.DICT)
+                                    confs = [int(c) for c in data.get('conf', []) if str(c).isdigit() and int(c) >= 0]
+                                    avg_conf = (sum(confs) / len(confs)) if confs else 0.0
+                                    if avg_conf > best_conf and text and text.strip():
+                                        best_conf = avg_conf
+                                        best_text = text
+                                except Exception as e:
+                                    self._log_warning(f"OCR failed on page {page_index+1} rot={rot} lang={lang} cfg={cfg}: {e}")
+                                    continue
 
                 if best_text.strip():
                     full_text_parts.append(best_text)
@@ -461,12 +476,16 @@ class BankStatementProcessor:
         if not text:
             return []
 
-        # Normalize whitespace and split into lines
+        # Normalize digits/separators and whitespace for RTL text
+        normalized_text = self._normalize_rtl_and_digits(text)
         # Remove repeated non-informative lines (headers/footers) and empty lines
-        raw_lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+        raw_lines = [re.sub(r"\s+", " ", line).strip() for line in normalized_text.splitlines()]
 
         # Filter out common header/footer noise
-        header_noise = re.compile(r"(?i)^(date|transaction|description|narration|debit|credit|amount|balance|page\s+\d+|statement|account|opening balance|closing balance)\b")
+        header_noise = re.compile(
+            r"(?i)^(date|transaction|description|narration|debit|credit|amount|balance|page\s+\d+|statement|account|opening balance|closing balance|"
+            r"تاريخ|المعاملة|البيان|الوصف|مدين|دائن|المبلغ|الرصيد)\b"
+        )
         sep_noise = re.compile(r"^[\-=_]{4,}$")
         lines = [ln for ln in raw_lines if ln and not header_noise.search(ln) and not sep_noise.match(ln)]
 
@@ -486,7 +505,8 @@ class BankStatementProcessor:
                 return
             candidate = " ".join(buffer).strip()
             conf = ocr_confidence if ocr_confidence is not None else 100.0
-            tx = self._parse_line_dual_dates_amounts(candidate, confidence=conf)
+            # Try generic parser first
+            tx = self._parse_line_to_transaction(candidate, confidence=conf)
             if tx:
                 transactions.append(tx)
                 buffer.clear()
@@ -787,6 +807,9 @@ class BankStatementProcessor:
         
         # Clean the amount string
         amount_str = str(amount_str).strip()
+        # Normalize Arabic digits and separators, remove directional marks
+        amount_str = self._normalize_rtl_and_digits(amount_str)
+        amount_str = re.sub(r'[\u200e\u200f\u202a-\u202e]', '', amount_str)
         amount_str = re.sub(r'[^\d.,\-]', '', amount_str)  # Remove non-numeric chars except .,- 
         
         if not amount_str:
@@ -804,6 +827,35 @@ class BankStatementProcessor:
             return Decimal(amount_str)
         except (InvalidOperation, ValueError):
             return None
+    
+    def _get_ocr_languages(self) -> List[str]:
+        """Return list of Tesseract language codes to try in order of preference.
+
+        Reads optional settings.OCR_LANGS; defaults to Arabic+English support.
+        """
+        langs = getattr(settings, 'OCR_LANGS', None)
+        if isinstance(langs, str):
+            parts = [p.strip() for p in re.split(r'[ ,]+', langs) if p.strip()]
+            if parts:
+                return parts
+        if isinstance(langs, (list, tuple)) and langs:
+            return list(langs)
+        return ['ara+eng', 'ara', 'eng']
+
+    def _normalize_rtl_and_digits(self, text: str) -> str:
+        """Normalize Arabic-Indic digits/separators and strip RTL marks to aid parsing."""
+        if not text:
+            return text
+        # Arabic-Indic and Extended Arabic-Indic digits to ASCII
+        trans_map = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789')
+        text = text.translate(trans_map)
+        # Normalize separators
+        text = text.replace('٫', '.').replace('٬', ',').replace('،', ',')
+        # Normalize dashes/minus variants and kashida
+        text = text.replace('–', '-').replace('—', '-').replace('−', '-').replace('ـ', '')
+        # Remove directionality marks
+        text = re.sub(r'[\u200e\u200f\u202a-\u202e]', '', text)
+        return text
     
     def _log_info(self, message: str):
         """Log info message"""

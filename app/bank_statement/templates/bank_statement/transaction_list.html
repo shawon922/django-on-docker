@@ -129,7 +129,7 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
-                <h5 class="card-title text-success">${{ total_credits|floatformat:2 }}</h5>
+                <h5 class="card-title text-success">SAR {{ total_credits|floatformat:2 }}</h5>
                 <p class="card-text text-muted">Total Credits</p>
             </div>
         </div>
@@ -137,7 +137,7 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
-                <h5 class="card-title text-danger">${{ total_debits|floatformat:2 }}</h5>
+                <h5 class="card-title text-danger">SAR {{ total_debits|floatformat:2 }}</h5>
                 <p class="card-text text-muted">Total Debits</p>
             </div>
         </div>
@@ -146,7 +146,7 @@
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title {% if net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    ${{ net_amount|floatformat:2 }}
+                    SAR {{ net_amount|floatformat:2 }}
                 </h5>
                 <p class="card-text text-muted">Net Amount</p>
             </div>
@@ -254,7 +254,7 @@
                                         <td class="text-end">
                                             {% if transaction.debit_amount %}
                                                 <span class="text-danger fw-medium">
-                                                    ${{ transaction.debit_amount|floatformat:2 }}
+                                                    SAR {{ transaction.debit_amount|floatformat:2 }}
                                                 </span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
@@ -263,7 +263,7 @@
                                         <td class="text-end">
                                             {% if transaction.credit_amount %}
                                                 <span class="text-success fw-medium">
-                                                    ${{ transaction.credit_amount|floatformat:2 }}
+                                                    SAR {{ transaction.credit_amount|floatformat:2 }}
                                                 </span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
@@ -272,7 +272,7 @@
                                         <td class="text-end">
                                             {% if transaction.balance %}
                                                 <span class="fw-medium {% if transaction.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                                    ${{ transaction.balance|floatformat:2 }}
+                                                    SAR {{ transaction.balance|floatformat:2 }}
                                                 </span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
@@ -315,12 +315,12 @@
                                             <div>
                                                 {% if transaction.debit_amount %}
                                                     <div class="text-danger fw-bold">
-                                                        -${{ transaction.debit_amount|floatformat:2 }}
+                                                        -SAR {{ transaction.debit_amount|floatformat:2 }}
                                                     </div>
                                                 {% endif %}
                                                 {% if transaction.credit_amount %}
                                                     <div class="text-success fw-bold">
-                                                        +${{ transaction.credit_amount|floatformat:2 }}
+                                                        +SAR {{ transaction.credit_amount|floatformat:2 }}
                                                     </div>
                                                 {% endif %}
                                             </div>
@@ -329,7 +329,7 @@
                                                 <div class="text-end">
                                                     <small class="text-muted">Balance</small>
                                                     <div class="fw-medium {% if transaction.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                                        ${{ transaction.balance|floatformat:2 }}
+                                                        SAR {{ transaction.balance|floatformat:2 }}
                                                     </div>
                                                 </div>
                                             {% endif %}
