@@ -1,0 +1,22 @@
+{% extends 'bank_statement/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>Upload POS Receipt</h3>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary">Upload & Parse</button>
+  </form>
+  <p class="text-muted mt-2">Accepted: PDF, JPG, PNG, TIFF</p>
+  {% if messages %}
+    <ul class="mt-3">
+      {% for message in messages %}
+        <li class="alert alert-{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  </div>
+{% endblock %}
+

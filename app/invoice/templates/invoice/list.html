@@ -1,0 +1,37 @@
+{% extends 'bank_statement/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h3>My Invoices</h3>
+    <a class="btn btn-primary" href="{% url 'invoice:upload' %}"><i class="bi bi-cloud-upload me-1"></i>Upload Receipt</a>
+  </div>
+  <table class="table table-hover mt-3">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Merchant</th>
+        <th>Date</th>
+        <th class="text-end">Total</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td>{{ inv.id }}</td>
+        <td>{{ inv.merchant_name|default:'—' }}</td>
+        <td>{{ inv.invoice_date|date:'Y-m-d H:i' }}</td>
+        <td class="text-end">{{ inv.total_amount|default:'—' }}</td>
+        <td><span class="badge bg-secondary">{{ inv.status }}</span></td>
+        <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'invoice:detail' inv.id %}">View</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted">No invoices yet. Upload a receipt to get started.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

@@ -221,6 +221,15 @@
                             <i class="bi bi-file-earmark-text me-1"></i>Statements
                         </a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="invoiceMenu" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-receipt me-1"></i>Invoices
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="invoiceMenu">
+                            <li><a class="dropdown-item" href="{% url 'invoice:list' %}"><i class="bi bi-card-list me-2"></i>My Invoices</a></li>
+                            <li><a class="dropdown-item" href="{% url 'invoice:upload' %}"><i class="bi bi-cloud-upload me-2"></i>Upload Receipt</a></li>
+                        </ul>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">

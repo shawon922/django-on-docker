@@ -72,8 +72,15 @@ class BankStatementProcessor:
             self._extract_with_camelot,
             self._extract_with_tabula,
             # Fallback for scanned PDFs (images inside PDF)
-            self._extract_scanned_pdf
+            # self._extract_scanned_pdf
         ]
+        
+        pdf_type = self.classify_pdf(self.file_path)
+        
+        if pdf_type == 'image':
+            methods = [self._extract_scanned_pdf]
+        elif pdf_type == 'mixed':
+            methods.append(self._extract_scanned_pdf)
         
         for method in methods:
             try:
@@ -832,6 +839,55 @@ class BankStatementProcessor:
             message=message
         )
 
+    def classify_pdf(self, pdf_path):
+        """
+        Classifies a PDF as primarily text-based or image-based.
+
+        Args:
+            pdf_path (str): The path to the PDF file.
+
+        Returns:
+            str: "Text-based PDF", "Image-based PDF", or "Mixed Content PDF".
+        """
+        try:
+            doc = fitz.open(pdf_path)
+            total_text_area = 0.0
+            total_image_area = 0.0
+            total_page_area = 0.0
+
+            for page_num in range(doc.page_count):
+                page = doc[page_num]
+                total_page_area += abs(page.rect)
+
+                # Calculate text area
+                text_blocks = page.get_text("blocks")
+                for block in text_blocks:
+                    # Blocks with type 0 are text blocks
+                    if block[6] == 0:  # block[6] is the block type
+                        total_text_area += abs(fitz.Rect(block[:4]))
+
+                # Calculate image area (by checking for image blocks)
+                image_list = page.get_images(full=True)
+                for img in image_list:
+                    xref = img[0]
+                    s = doc.extract_image(xref)
+                    # Estimate image area based on image dimensions, or more accurately
+                    # by checking if it's rendered as a block on the page.
+                    # For simplicity here, we'll consider the presence of images.
+                    # A more robust approach might involve checking image block areas.
+                    total_image_area += 1 # Increment for each image found, a more precise calculation would be better.
+
+            doc.close()
+
+            if total_text_area / total_page_area > 0.5 and total_image_area == 0:
+                return "text"
+            elif total_image_area > 0 and total_text_area / total_page_area < 0.1:
+                return "image"
+            else:
+                return "mixed"
+
+        except Exception as e:
+            return f"Error processing PDF: {e}"
 
 class DataCleaner:
     """Class for cleaning and validating extracted transaction data"""

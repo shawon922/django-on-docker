@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django_prometheus',
     'upload',
     'bank_statement',
+    'invoice',
     'crispy_forms',
     'crispy_bootstrap5',
     'django_extensions',

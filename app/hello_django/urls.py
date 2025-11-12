@@ -22,6 +22,7 @@ urlpatterns = [
     path('auth/', include('authentication.urls')),
     path('upload/', include('upload.urls')),
     path('bank-statements/', include('bank_statement.urls')),
+    path('invoices/', include('invoice.urls')),
     path('', include('django_prometheus.urls')),
 ]
 
