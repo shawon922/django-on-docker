@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     default-jre \
     tesseract-ocr \
+    tesseract-ocr-ara \
     poppler-utils \
     ghostscript \
     libgl1-mesa-glx \
