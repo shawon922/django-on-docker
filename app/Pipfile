@@ -15,7 +15,7 @@ pytesseract = "*"
 Pillow = "*"
 pdfplumber = "*"
 PyMuPDF = "*"
-camelot-py = {extras = ["cv"], version = "*"}
+camelot-py = "*"
 tabula-py = "*"
 pandas = "*"
 numpy = "*"
